@@ -1,0 +1,37 @@
+#  Webhook Pusher 配置文件
+
+# 服务配置
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+# 认证配置
+# 客户端调用 webhook 时需在 Authorization 头中携带此 token
+# 格式: Authorization: Bearer <token>
+auth:
+  tokens:
+    - "your-secret-token-here"   # 可配置多个 token
+
+# 邮件 (SMTP) 配置
+email:
+  enabled: true
+  smtp_host: "smtp.example.com"   # SMTP 服务器地址
+  smtp_port: 465                  # SMTP 端口 (SSL: 465, STARTTLS: 587)
+  use_ssl: true                   # 是否使用 SSL
+  use_starttls: false             # 是否使用 STARTTLS (与 SSL 互斥)
+  username: "user@example.com"    # SMTP 用户名
+  password: "your-app-password"   # SMTP 密码 / 应用专用密码
+  sender: "user@example.com"      # 默认发件人地址
+  sender_name: "Webhook Pusher"   # 发件人显示名称
+
+# Telegram 配置 (预留)
+telegram:
+  enabled: false
+  bot_token: ""
+  # chat_id 在 webhook 调用时传参
+
+# Discord 配置 (预留)
+discord:
+  enabled: false
+  webhook_urls: []
+  # 也可在 webhook 调用时传参
