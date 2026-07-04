@@ -24,11 +24,15 @@ email:
   sender: "user@example.com"      # 默认发件人地址
   sender_name: "Webhook Pusher"   # 发件人显示名称
 
-# Telegram 配置 (预留)
+# Telegram 配置
+# 获取 Bot Token: 在 Telegram 中搜索 @BotFather，创建 Bot 后获取
+# 获取 chat_id:  与你的 Bot 对话后访问 https://api.telegram.org/bot<token>/getUpdates
 telegram:
   enabled: false
-  bot_token: ""
-  # chat_id 在 webhook 调用时传参
+  bot_token: ""                   # 从 @BotFather 获取的 Bot Token
+  parse_mode: "HTML"              # 消息解析模式: "HTML" / "MarkdownV2" / "" (纯文本)
+  # api_base: "https://api.telegram.org"  # 可自定义地址 (国内无法直连时使用)
+  # timeout: 30.0                          # HTTP 请求超时 (秒)
 
 # Discord 配置 (预留)
 discord:

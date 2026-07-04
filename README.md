@@ -1,10 +1,11 @@
 # Webhook Pusher
 
-通用 Webhook 消息推送服务 — 通过 HTTP Webhook 调用发送邮件（SMTP），预留 Telegram / Discord 等渠道扩展接口。
+通用 Webhook 消息推送服务 — 通过 HTTP Webhook 调用发送邮件（SMTP）和 Telegram 消息，预留 Discord 等渠道扩展接口。
 
 ## ✨ 功能特性
 
 - **邮件推送**：基于 SMTP 异步发送（aiosmtplib），支持 SSL / STARTTLS
+- **Telegram 推送**：基于 Telegram Bot API 异步发送消息，支持 HTML / MarkdownV2 格式
 - **身份验证**：Bearer Token 认证，防止接口被滥用
 - **多渠道架构**：抽象 Notifier 基类，插件式注册新渠道
 - **配置驱动**：YAML 配置文件，修改无需改代码
@@ -26,7 +27,7 @@ webhook-pusher/
     ├── __init__.py
     ├── base.py                 # Notifier 抽象基类 + 统一消息模型
     ├── email_notifier.py       # SMTP 邮件通知器
-    ├── telegram_notifier.py    # Telegram 通知器 (占位)
+    ├── telegram_notifier.py    # Telegram Bot 通知器
     └── discord_notifier.py     # Discord 通知器 (占位)
 ```
 
@@ -58,6 +59,23 @@ email:
   sender_name: "Webhook Pusher"
 ```
 
+### 启用 Telegram 推送
+
+在 `config.yaml` 中配置 Telegram 段：
+
+```yaml
+telegram:
+  enabled: true
+  bot_token: "123456789:ABCdefGhIjKlMnOpQrStUvWxYz"  # 从 @BotFather 获取
+  parse_mode: "HTML"        # "HTML" / "MarkdownV2" / "" (纯文本)
+  # api_base: "https://api.telegram.org"  # 可自定义反代地址
+  # timeout: 30.0                          # 请求超时 (秒)
+```
+
+> **获取 Bot Token**：在 Telegram 中搜索 `@BotFather`，发送 `/newbot` 创建 Bot 后获取。
+>
+> **获取 chat_id**：先给你的 Bot 发一条消息，然后访问 `https://api.telegram.org/bot<token>/getUpdates`，在返回的 JSON 中找到 `chat.id`。
+
 ### 3. 启动服务
 
 ```bash
@@ -80,6 +98,21 @@ curl -X POST http://localhost:8000/push/email \
     "body": "你好！\n这是第二行内容。"
   }'
 ```
+
+#### 发送 Telegram 消息（快捷接口）
+
+```bash
+curl -X POST http://localhost:8000/push/telegram \
+  -H "Authorization: Bearer your-secret-token-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recipient": "123456789",
+    "subject": "通知标题",
+    "body": "消息正文\\n第二行内容"
+  }'
+```
+
+> `recipient` 可以是数字 `chat_id`（如 `"123456789"`）或频道用户名（如 `"@mychannel"`）。
 
 #### 通用推送接口（指定渠道）
 
@@ -116,15 +149,25 @@ curl http://localhost:8000/health
 | `GET` | `/channels` | ✅ | 查看当前启用的推送渠道 |
 | `POST` | `/push` | ✅ | 通用推送，通过 `channel` 字段指定渠道 |
 | `POST` | `/push/email` | ✅ | 快捷邮件推送 |
+| `POST` | `/push/telegram` | ✅ | 快捷 Telegram 推送 |
 
 ### 请求参数
+
+**通用字段（所有渠道）：**
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `channel` | string | `/push` 必填 | 推送渠道：`email` / `telegram` / `discord` |
 | `recipient` | string | ✅ | 收件人邮箱地址 / chat_id / webhook URL |
-| `subject` | string | ❌ | 标题（邮件主题等） |
+| `subject` | string | ❌ | 标题（邮件主题、Telegram 加粗标题等） |
 | `body` | string | ✅ | 正文，`\n` 会被自动转为换行 |
+
+**Telegram 特有字段（`/push/telegram` 接口）：**
+
+| 字段 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `disable_notification` | bool | `false` | 静默发送（无提示音） |
+| `disable_web_page_preview` | bool | `false` | 禁用消息中链接的预览 |
 
 ### 认证方式
 

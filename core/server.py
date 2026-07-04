@@ -39,6 +39,16 @@ class EmailPushRequest(BaseModel):
     body: str = Field(..., description="邮件正文，支持 \\n 换行")
 
 
+class TelegramPushRequest(BaseModel):
+    """快捷 Telegram 推送请求 (无需指定 channel)"""
+
+    recipient: str = Field(..., description="目标 chat_id (数字 ID 或 @channelusername)")
+    subject: str = Field("", description="消息标题 (加粗显示)")
+    body: str = Field(..., description="消息正文，支持 \\n 换行")
+    disable_notification: bool = Field(False, description="静默发送 (无提示音)")
+    disable_web_page_preview: bool = Field(False, description="禁用链接预览")
+
+
 class PushResponse(BaseModel):
     """推送响应"""
 
@@ -194,6 +204,53 @@ async def push_email(req: EmailPushRequest, token: str = Depends(verify_token)):
     return PushResponse(
         success=result.get("success", False),
         channel="email",
+        detail=result.get("detail", ""),
+        results=[result],
+    )
+
+
+@app.post("/push/telegram", response_model=PushResponse)
+async def push_telegram(req: TelegramPushRequest, token: str = Depends(verify_token)):
+    """
+    快捷 Telegram 推送接口 — 无需指定 channel，直接发送 Telegram 消息。
+
+    请求体:
+        {
+            "recipient": "123456789",
+            "subject": "通知标题",
+            "body": "消息正文\\n第二行",
+            "disable_notification": false,
+            "disable_web_page_preview": false
+        }
+
+    recipient 可以是:
+        - 数字 chat_id (如 "123456789")
+        - 频道用户名 (如 "@mychannel")
+    """
+    notifier = registry.get("telegram")
+    if notifier is None:
+        return PushResponse(
+            success=False,
+            channel="telegram",
+            detail="Telegram 推送未启用，请在 config.yaml 中配置 telegram.enabled=true 及 bot_token",
+        )
+
+    body = req.body.replace("\\n", "\n")
+
+    message = NotificationMessage(
+        recipient=req.recipient,
+        subject=req.subject,
+        body=body,
+        extra={
+            "disable_notification": req.disable_notification,
+            "disable_web_page_preview": req.disable_web_page_preview,
+        },
+    )
+
+    result = await notifier.send(message)
+    return PushResponse(
+        success=result.get("success", False),
+        channel="telegram",
         detail=result.get("detail", ""),
         results=[result],
     )
